@@ -1,0 +1,177 @@
+{
+  "_comment": "Curated AI crawler registry. 'probe: true' bots are actively simulated (they fetch pages in the wild). Bots with 'robots_token_only: true' NEVER fetch — they are robots.txt control tokens honored by another crawler; probing them is meaningless, only their robots.txt treatment matters. Long-tail blocklist available from https://raw.githubusercontent.com/ai-robots-txt/ai.robots.txt/main/robots.json (MIT).",
+  "bots": [
+    {
+      "token": "GPTBot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot",
+      "owner": "OpenAI",
+      "category": "training",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": "https://openai.com/gptbot.json",
+      "why_it_matters": "Feeds GPT model training. Presence here = long-term parametric memory of your brand."
+    },
+    {
+      "token": "OAI-SearchBot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot",
+      "owner": "OpenAI",
+      "category": "retrieval",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": "https://openai.com/searchbot.json",
+      "why_it_matters": "Builds the ChatGPT search index. This bot drives live citations — near-term money."
+    },
+    {
+      "token": "ChatGPT-User",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot",
+      "owner": "OpenAI",
+      "category": "user_fetch",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": "https://openai.com/chatgpt-user.json",
+      "why_it_matters": "Fires when a ChatGPT user's prompt triggers a live fetch of your page. Blocking it kills in-conversation citations."
+    },
+    {
+      "token": "ClaudeBot",
+      "ua": "Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)",
+      "owner": "Anthropic",
+      "category": "training",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Anthropic training crawler."
+    },
+    {
+      "token": "Claude-SearchBot",
+      "ua": "Mozilla/5.0 (compatible; Claude-SearchBot/1.0; +Claude-SearchBot@anthropic.com)",
+      "owner": "Anthropic",
+      "category": "retrieval",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Builds Claude's search index — live citation path."
+    },
+    {
+      "token": "Claude-User",
+      "ua": "Mozilla/5.0 (compatible; Claude-User/1.0; +Claude-User@anthropic.com)",
+      "owner": "Anthropic",
+      "category": "user_fetch",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "User-triggered fetches from Claude conversations."
+    },
+    {
+      "token": "PerplexityBot",
+      "ua": "Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)",
+      "owner": "Perplexity",
+      "category": "retrieval",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": "https://www.perplexity.ai/perplexitybot.json",
+      "why_it_matters": "Perplexity's index crawler. Perplexity cites aggressively — high citation yield per crawl."
+    },
+    {
+      "token": "Perplexity-User",
+      "ua": "Mozilla/5.0 (compatible; Perplexity-User/1.0; +https://perplexity.ai/perplexity-user)",
+      "owner": "Perplexity",
+      "category": "user_fetch",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": "https://www.perplexity.ai/perplexity-user.json",
+      "why_it_matters": "User-triggered fetches from Perplexity answers."
+    },
+    {
+      "token": "bingbot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm) Chrome/116.0.1938.76 Safari/537.36",
+      "owner": "Microsoft",
+      "category": "retrieval",
+      "probe": true,
+      "renders_js": "partial",
+      "ip_ranges": "https://www.bing.com/toolbox/bingbot.json",
+      "why_it_matters": "Feeds Bing index -> Copilot grounding AND (historically) ChatGPT search seeding. Underrated GEO surface."
+    },
+    {
+      "token": "Amazonbot",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/600.2.5 (KHTML, like Gecko) Version/8.0.2 Safari/600.2.5 (Amazonbot/0.1; +https://developer.amazon.com/support/amazonbot)",
+      "owner": "Amazon",
+      "category": "retrieval",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Alexa / Rufus grounding."
+    },
+    {
+      "token": "Google-Extended",
+      "owner": "Google",
+      "category": "training",
+      "probe": false,
+      "robots_token_only": true,
+      "honored_by": "Googlebot",
+      "why_it_matters": "robots.txt token controlling Gemini training use. Googlebot does the actual fetching — this token never appears in logs."
+    },
+    {
+      "token": "Applebot-Extended",
+      "owner": "Apple",
+      "category": "training",
+      "probe": false,
+      "robots_token_only": true,
+      "honored_by": "Applebot",
+      "why_it_matters": "robots.txt token controlling Apple Intelligence training use."
+    },
+    {
+      "token": "CCBot",
+      "ua": "CCBot/2.0 (https://commoncrawl.org/faq/)",
+      "owner": "Common Crawl",
+      "category": "training",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Common Crawl feeds many LLM training corpora. Blocking CCBot removes you from most open training datasets."
+    },
+    {
+      "token": "meta-externalagent",
+      "ua": "meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)",
+      "owner": "Meta",
+      "category": "training",
+      "probe": true,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Llama training crawler."
+    },
+    {
+      "token": "DuckAssistBot",
+      "ua": "Mozilla/5.0 (compatible; DuckAssistBot/1.0; +http://duckduckgo.com/duckassistbot.html)",
+      "owner": "DuckDuckGo",
+      "category": "retrieval",
+      "probe": false,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "DuckAssist answers. Low volume; tracked in logs, not probed."
+    },
+    {
+      "token": "MistralAI-User",
+      "ua": "Mozilla/5.0 (compatible; MistralAI-User/1.0; +https://mistral.ai/bot)",
+      "owner": "Mistral",
+      "category": "user_fetch",
+      "probe": false,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Le Chat user fetches. Tracked in logs, not probed."
+    },
+    {
+      "token": "Bytespider",
+      "ua": "Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)",
+      "owner": "ByteDance",
+      "category": "training",
+      "probe": false,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Doubao/TikTok AI training. Notorious robots.txt non-compliance — log-tracking only."
+    }
+  ],
+  "baseline": {
+    "token": "baseline-browser",
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  }
+}
