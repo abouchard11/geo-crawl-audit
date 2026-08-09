@@ -12,7 +12,7 @@ Diagnose the **input side** of AI search visibility: whether AI crawlers can rea
 An AI engine can only cite what it successfully retrieved. The failure chain, in order:
 1. **Reachability** — WAF/bot-management silently 403s or challenges the crawler
 2. **Speed** — slow TTFB makes the bot abandon (logged as 499, invisible in analytics)
-3. **Readability** — GPTBot, ClaudeBot, and PerplexityBot do **not** execute JavaScript; client-rendered pages are empty to them (Googlebot/Gemini is the lone exception)
+3. **Raw-HTML readability** — client-rendered content may be absent from a non-rendering response; vendor rendering behavior is not uniformly documented, so confirm with bot-specific responses and real logs
 4. **Permission** — robots.txt tokens (incl. token-only entries like Google-Extended that never fetch but control training use)
 
 Never recommend content or "AI optimization" work before these gates pass. It's optimizing retrieval for a bot that isn't reaching the page.
@@ -26,7 +26,7 @@ python3 scripts/geo_probe.py example.com other.com --out ./audit-results
 
 Produces `geo_audit_report.md` (scorecard + flags, worst-first) and `geo_audit.json`. Per domain it:
 - probes the homepage with ~12 real bot UAs + a baseline browser UA
-- measures cold and warm TTFB (cold = what a bot gets on uncached pages)
+- measures first and repeat TTFB as a variability signal, without assuming either request is a cache miss or cold start
 - flags **differentials**: any bot UA treated differently than the browser
 - classifies raw HTML as SSR_FULL / SSR_THIN / CSR_SHELL (visible words without JS)
 - parses robots.txt verdicts for every AI bot token, including token-only agents
@@ -34,9 +34,9 @@ Produces `geo_audit_report.md` (scorecard + flags, worst-first) and `geo_audit.j
 
 **Interpretation rules — read before presenting results:**
 - A differential means "a bot-sensitive filtering layer exists", NOT "the real bot is blocked". Probes come from this machine's IP; WAFs doing verified-bot IP checks may treat the simulation differently in either direction. Present it as a lead to confirm in logs (Mode B).
-- CSR_SHELL is the most severe finding possible: the site is invisible to every non-JS AI crawler regardless of rankings. Lead with it.
-- Median bot TTFB > 1.2s = 499-abandon risk. A large cold/warm gap means bots hitting uncached long-tail pages get the cold number — fix with ISR/prerendering/CDN cache warming, not just "make it faster".
-- Retrieval + user_fetch category bots (OAI-SearchBot, Claude-SearchBot, PerplexityBot, ChatGPT-User…) drive **live citations now**; training bots (GPTBot, ClaudeBot, CCBot…) drive **long-term model memory**. Weight findings accordingly and say which lever each fix pulls.
+- CSR_SHELL means the baseline raw HTML is thin. State that non-rendering clients may miss content, then compare bot-UA bodies and real logs; do not claim every vendor sees nothing.
+- Median simulated-UA TTFB > 1.2s is an audit heuristic, not a vendor SLA. Treat a first/repeat gap as a variability lead and use cache headers or origin traces to identify the cause. A 499 means client cancellation, not automatically a crawler timeout or lost citation.
+- Retrieval + user_fetch categories represent vendor-documented retrieval paths; training categories represent collection permission. Do not promise citations, training inclusion, model memory, or timing from an allow rule.
 
 For threshold rationale and the fix playbook (per flag code), read `references/interpreting.md`.
 
@@ -57,7 +57,7 @@ No drain set up yet? Read `references/log-pipeline.md` — includes the Vercel D
 1. Run Mode A across all target domains (get them from the user, a domains file, or their hosting provider's project list).
 2. Present the scorecard worst-first; lead with CRITICAL flags. Keep the llms.txt result to a footnote.
 3. For any differential or slow-TTFB flag, run or set up Mode B to confirm what real bots experience.
-4. Translate each confirmed finding into its fix (see `references/interpreting.md`) and state which visibility lever it pulls (live citations vs. training presence).
+4. Translate each confirmed finding into its fix (see `references/interpreting.md`) and state whether it affects retrieval access or training collection eligibility.
 5. Re-run Mode A after fixes ship; compare scores.
 
 ## Maintenance

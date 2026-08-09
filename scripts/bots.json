@@ -3,23 +3,23 @@
   "bots": [
     {
       "token": "GPTBot",
-      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.4; +https://openai.com/gptbot",
       "owner": "OpenAI",
       "category": "training",
       "probe": true,
       "renders_js": false,
       "ip_ranges": "https://openai.com/gptbot.json",
-      "why_it_matters": "Feeds GPT model training. Presence here = long-term parametric memory of your brand."
+      "why_it_matters": "OpenAI training crawler. Allowing it makes content eligible for future model-training collection; it does not guarantee inclusion or model memory."
     },
     {
       "token": "OAI-SearchBot",
-      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot",
       "owner": "OpenAI",
       "category": "retrieval",
       "probe": true,
       "renders_js": false,
       "ip_ranges": "https://openai.com/searchbot.json",
-      "why_it_matters": "Builds the ChatGPT search index. This bot drives live citations — near-term money."
+      "why_it_matters": "OpenAI search crawler. Blocking it can keep pages out of ChatGPT search answers, subject to OpenAI's documented behavior."
     },
     {
       "token": "ChatGPT-User",
@@ -29,7 +29,7 @@
       "probe": true,
       "renders_js": false,
       "ip_ranges": "https://openai.com/chatgpt-user.json",
-      "why_it_matters": "Fires when a ChatGPT user's prompt triggers a live fetch of your page. Blocking it kills in-conversation citations."
+      "why_it_matters": "User-triggered OpenAI fetcher. OpenAI notes that robots.txt rules may not apply to these user-initiated requests."
     },
     {
       "token": "ClaudeBot",
@@ -39,6 +39,8 @@
       "probe": true,
       "renders_js": false,
       "ip_ranges": null,
+      "ip_ranges_page": "https://platform.claude.com/docs/en/api/ip-addresses",
+      "ip_cidrs": ["160.79.104.0/21"],
       "why_it_matters": "Anthropic training crawler."
     },
     {
@@ -49,6 +51,8 @@
       "probe": true,
       "renders_js": false,
       "ip_ranges": null,
+      "ip_ranges_page": "https://platform.claude.com/docs/en/api/ip-addresses",
+      "ip_cidrs": ["160.79.104.0/21"],
       "why_it_matters": "Builds Claude's search index — live citation path."
     },
     {
@@ -59,26 +63,28 @@
       "probe": true,
       "renders_js": false,
       "ip_ranges": null,
+      "ip_ranges_page": "https://platform.claude.com/docs/en/api/ip-addresses",
+      "ip_cidrs": ["160.79.104.0/21"],
       "why_it_matters": "User-triggered fetches from Claude conversations."
     },
     {
       "token": "PerplexityBot",
-      "ua": "Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)",
       "owner": "Perplexity",
       "category": "retrieval",
       "probe": true,
       "renders_js": false,
-      "ip_ranges": "https://www.perplexity.ai/perplexitybot.json",
-      "why_it_matters": "Perplexity's index crawler. Perplexity cites aggressively — high citation yield per crawl."
+      "ip_ranges": "https://www.perplexity.com/perplexitybot.json",
+      "why_it_matters": "Perplexity search crawler. Perplexity recommends allowing this bot for pages to appear in its search results."
     },
     {
       "token": "Perplexity-User",
-      "ua": "Mozilla/5.0 (compatible; Perplexity-User/1.0; +https://perplexity.ai/perplexity-user)",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Perplexity-User/1.0; +https://perplexity.ai/perplexity-user)",
       "owner": "Perplexity",
       "category": "user_fetch",
       "probe": true,
       "renders_js": false,
-      "ip_ranges": "https://www.perplexity.ai/perplexity-user.json",
+      "ip_ranges": "https://www.perplexity.com/perplexity-user.json",
       "why_it_matters": "User-triggered fetches from Perplexity answers."
     },
     {
@@ -89,7 +95,7 @@
       "probe": true,
       "renders_js": "partial",
       "ip_ranges": "https://www.bing.com/toolbox/bingbot.json",
-      "why_it_matters": "Feeds Bing index -> Copilot grounding AND (historically) ChatGPT search seeding. Underrated GEO surface."
+      "why_it_matters": "Microsoft search crawler, included as a conventional search-crawler control rather than an AI-vendor-specific crawler."
     },
     {
       "token": "Amazonbot",

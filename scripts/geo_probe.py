@@ -5,7 +5,7 @@ geo_probe.py — Active GEO crawl audit.
 Probes each domain with the user-agents of the AI crawlers that matter
 (training / retrieval / user-fetch), measures status + TTFB, detects
 WAF/bot-management differentials vs a baseline browser UA, analyzes
-whether content exists in raw HTML (AI bots don't execute JS), and
+whether content exists in the baseline raw HTML response, and
 parses robots.txt handling of AI bot tokens.
 
 Zero third-party dependencies: uses curl subprocess for precise timing
@@ -139,11 +139,10 @@ def challenge_signals(resp):
 
 
 def analyze_content(body):
-    """Judge whether meaningful content exists WITHOUT JavaScript execution.
+    """Classify the text present in one raw HTML response.
 
-    This is the #1 GEO gate: GPTBot, ClaudeBot and PerplexityBot do not
-    execute JS. If the raw HTML is an app shell, the site is invisible
-    to them regardless of how well it ranks in Google.
+    This is a useful non-rendering baseline, not proof that every crawler
+    receives the same HTML or that a vendor never renders JavaScript.
     """
     if not body:
         return {"classification": "EMPTY", "visible_words": 0}
@@ -208,6 +207,19 @@ def parse_robots(body):
     return groups, sitemaps
 
 
+def robots_path_matches(pattern, request_path="/"):
+    """Return whether a robots path pattern matches ``request_path``."""
+    if pattern == "":
+        return False
+    anchored = pattern.endswith("$")
+    if anchored:
+        pattern = pattern[:-1]
+    expr = "^" + re.escape(pattern).replace(r"\*", ".*")
+    if anchored:
+        expr += "$"
+    return re.search(expr, request_path) is not None
+
+
 def robots_verdict(groups, token):
     """Root-path access verdict for a bot token: (allowed, explicit_block)."""
     if groups is None:
@@ -217,17 +229,17 @@ def robots_verdict(groups, token):
     explicit = rules is not None
     if rules is None:
         rules = groups.get("*", [])
-    # Longest-match wins per RFC 9309; empty Disallow means allow-all.
+    # Longest-match wins; Allow wins ties. Empty Disallow means allow-all.
     best_len, allowed = -1, True
     for directive, path in rules:
         if path == "" and directive == "disallow":
             continue
-        if path and "/".startswith(path[:1]) is False and not path.startswith("/"):
-            continue
-        if "/".startswith(path) or path == "/":
-            if len(path) > best_len:
-                best_len = len(path)
-                allowed = directive == "allow"
+        if robots_path_matches(path):
+            match_len = len(path.rstrip("$"))
+            candidate_allowed = directive == "allow"
+            if match_len > best_len or (match_len == best_len and candidate_allowed):
+                best_len = match_len
+                allowed = candidate_allowed
     return allowed, explicit
 
 
@@ -242,9 +254,8 @@ def audit_domain(domain, registry, sample_pages=0):
 
     out = {"domain": domain, "probes": {}, "flags": []}
 
-    # 1) Baseline, twice: first hit may be a serverless cold start / CDN miss.
-    #    Cold TTFB is what a bot gets on an infrequently-crawled page — that is
-    #    the number that produces 499 abandons, so we keep both.
+    # 1) Baseline, twice. The first/repeat gap is a variability signal; a first
+    #    request is not automatically a CDN miss or serverless cold start.
     cold = curl_fetch(base_url, baseline_ua, save_body=False)
     time.sleep(INTER_REQUEST_DELAY)
     warm = curl_fetch(cold.get("final_url", base_url), baseline_ua, save_body=True)
@@ -252,6 +263,8 @@ def audit_domain(domain, registry, sample_pages=0):
         out["error"] = warm.get("error") or cold.get("error") or "unreachable"
         return out
     out["baseline"] = {
+        "first_ttfb": cold.get("ttfb"), "repeat_ttfb": warm.get("ttfb"),
+        # Backward-compatible aliases retained for v0.1 JSON consumers.
         "cold_ttfb": cold.get("ttfb"), "warm_ttfb": warm.get("ttfb"),
         "status": warm.get("status"), "final_url": warm.get("final_url"),
         "server": warm["headers"].get("server"),
@@ -260,7 +273,7 @@ def audit_domain(domain, registry, sample_pages=0):
     }
     final_url = warm.get("final_url", base_url)
 
-    # 2) Raw-HTML content analysis (what a non-JS bot actually sees)
+    # 2) Raw-HTML content analysis of the baseline response.
     out["content"] = analyze_content(warm.get("body", ""))
 
     # 3) robots.txt + llms.txt
@@ -348,6 +361,10 @@ def score_and_flag(out, probe_bots):
                       f"probe-environment filtering, not real bot experience; "
                       f"re-run from a residential network before concluding anything",
         })
+        out["conclusive"] = False
+        out["score"] = None
+        return
+    out["conclusive"] = True
 
     # Reachability (max -40)
     reach_penalty = 0
@@ -371,14 +388,14 @@ def score_and_flag(out, probe_bots):
             })
     score -= min(reach_penalty, 40)
 
-    # Speed (max -25). >1.2s median TTFB is 499-abandon territory.
+    # Speed (max -25). Thresholds are audit heuristics, not vendor SLAs.
     med = out.get("bot_ttfb_median")
     cold = out.get("baseline", {}).get("cold_ttfb")
     if med is not None:
         if med > 2.0:
             score -= 25
             flags.append({"severity": "CRITICAL", "code": "SLOW_TTFB",
-                          "detail": f"median bot TTFB {med}s — high 499/abandon risk"})
+                          "detail": f"median simulated-UA TTFB {med}s — investigate timeout risk in logs"})
         elif med > 1.2:
             score -= 15
             flags.append({"severity": "HIGH", "code": "SLOW_TTFB",
@@ -386,9 +403,9 @@ def score_and_flag(out, probe_bots):
         elif med > 0.8:
             score -= 7
     if cold and med and cold > max(2.0, med * 3):
-        flags.append({"severity": "HIGH", "code": "COLD_START",
-                      "detail": f"cold TTFB {cold}s vs warm {out['baseline']['warm_ttfb']}s — "
-                                f"bots hitting uncached pages get the cold number"})
+        flags.append({"severity": "HIGH", "code": "TTFB_VARIANCE",
+                      "detail": f"first TTFB {cold}s vs repeat {out['baseline']['repeat_ttfb']}s — "
+                                f"confirm cache/origin behavior with response headers and logs"})
 
     # Raw-HTML content (max -25) — skipped when the baseline itself failed,
     # because we'd be classifying an error page's word count.
@@ -396,8 +413,10 @@ def score_and_flag(out, probe_bots):
     if cls == "CSR_SHELL" or cls == "EMPTY":
         score -= 25
         flags.append({"severity": "CRITICAL", "code": "CSR_SHELL",
-                      "detail": f"only {out['content'].get('visible_words', 0)} visible words in raw HTML — "
-                                f"invisible to non-JS AI crawlers"})
+                      "detail": f"baseline raw HTML contains only "
+                                f"{out['content'].get('visible_words', 0)} visible words — "
+                                f"non-rendering clients may miss client-rendered content; "
+                                f"check bot-specific responses and logs"})
     elif cls == "SSR_THIN":
         score -= 12
         flags.append({"severity": "WARN", "code": "THIN_HTML",
@@ -443,16 +462,17 @@ def render_report(results, generated_at):
         f"\n**Generated:** {generated_at}  ",
         "**Method:** active multi-UA probe (see caveat at bottom)\n",
         "## Portfolio scorecard\n",
-        "| Domain | Score | Raw HTML | Words | Warm TTFB | Cold TTFB | Bot TTFB (med) | Differentials | Sitemap |",
+        "| Domain | Score | Raw HTML | Words | Repeat TTFB | First TTFB | Simulated-UA TTFB (med) | Differentials | Sitemap |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     ok = [r for r in results if "error" not in r]
-    for r in sorted(ok, key=lambda x: x["score"]):
+    for r in sorted(ok, key=lambda x: x["score"] if isinstance(x.get("score"), int) else -1):
         diffs = sum(1 for p in r["probes"].values() if p.get("differential"))
+        score = f"**{r['score']}**" if isinstance(r.get("score"), int) else "INCONCLUSIVE"
         lines.append(
-            f"| {r['domain']} | **{r['score']}** | {r['content']['classification']} "
-            f"| {r['content']['visible_words']} | {r['baseline']['warm_ttfb']}s "
-            f"| {r['baseline']['cold_ttfb']}s | {r.get('bot_ttfb_median')}s "
+            f"| {r['domain']} | {score} | {r['content']['classification']} "
+            f"| {r['content']['visible_words']} | {r['baseline']['repeat_ttfb']}s "
+            f"| {r['baseline']['first_ttfb']}s | {r.get('bot_ttfb_median')}s "
             f"| {diffs or '—'} | {'✓' if r['robots'].get('sitemaps') else '✗'} |"
         )
     for r in results:
@@ -471,10 +491,11 @@ def render_report(results, generated_at):
             lines.append(f"- **[{sev}] {dom}** `{code}` — {detail}")
 
     lines.append("\n## Per-domain detail\n")
-    for r in sorted(ok, key=lambda x: x["score"]):
+    for r in sorted(ok, key=lambda x: x["score"] if isinstance(x.get("score"), int) else -1):
         c, b = r["content"], r["baseline"]
+        score_label = f"{r['score']}/100" if isinstance(r.get("score"), int) else "inconclusive"
         lines += [
-            f"### {r['domain']} — {r['score']}/100\n",
+            f"### {r['domain']} — {score_label}\n",
             f"- Final URL: {b['final_url']} · server: `{b.get('server')}` · cache: `{b.get('cache')}`",
             f"- Title: {c.get('title')!r} · H1: {c.get('first_h1')!r} · JSON-LD blocks: {c.get('json_ld_blocks')}",
             f"- llms.txt: {'yes' if r.get('llms_txt') else 'no'} · sitemaps: {len(r['robots'].get('sitemaps', []))}",
@@ -531,7 +552,7 @@ def main():
             print(f"  [{len(results)}/{len(domains)}] {r['domain']}: {state}", file=sys.stderr)
 
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    results.sort(key=lambda r: r.get("score", -1))
+    results.sort(key=lambda r: r.get("score") if isinstance(r.get("score"), int) else -1)
     json_path = os.path.join(args.out, "geo_audit.json")
     md_path = os.path.join(args.out, "geo_audit_report.md")
     with open(json_path, "w") as fh:

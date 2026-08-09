@@ -6,12 +6,12 @@ Most GEO/AI-visibility tooling monitors the **output** — "did ChatGPT mention 
 
 ## Why this matters
 
-A site can rank #1 in Google and be **completely invisible** to ChatGPT, Claude, and Perplexity. Three silent failure modes:
+A site can rank well in Google while its baseline HTML is thin, bot policies are restrictive, or real crawler requests fail. Three failure modes worth testing:
 
 | Failure | Mechanism | Who catches it |
 |---|---|---|
-| **Unreadable** | GPTBot, ClaudeBot, and PerplexityBot do **not** execute JavaScript. Client-rendered pages are empty to them. Googlebot (→ Gemini) is the lone exception. | Almost nobody — the site "works fine" in every browser and ranks fine in Google |
-| **Abandoned** | AI crawlers run aggressive fetch timeouts. Slow TTFB → the bot hangs up mid-request. The only trace is a 499 in your access logs. No error, no alert, no citation. | Nobody who isn't reading logs |
+| **Thin baseline HTML** | Client-rendered content may be absent from the raw HTML response. Vendor rendering behavior is not uniformly documented, so confirm crawler-specific responses and actual logs before concluding what a bot read. | Often missed because the site works in a browser |
+| **Slow or cancelled** | Slow TTFB can contribute to timeouts or client cancellations. A 499 is a useful log signal, but it does not by itself identify a crawler timeout or prove a lost citation. | Nobody who isn't reading logs |
 | **Blocked** | WAF / bot-management rules (often defaults) challenge or 403 AI crawlers while humans sail through. | Nobody — the block is invisible from a browser |
 
 ## Quickstart
@@ -31,11 +31,11 @@ Output: `geo_audit_report.md` (scorecard + flags, worst first) and `geo_audit.js
 ### What the probe does per domain
 
 - Fetches with a **baseline browser UA**, then with ~12 real AI crawler UAs
-- Measures **cold and warm TTFB** separately (crawlers hit uncached long-tail pages — they get the cold number)
+- Measures **first and repeat TTFB** separately. The gap is a variability signal, not proof of a cold start or cache miss.
 - Flags **differentials**: any bot treated differently than the browser (status, challenge headers, body size)
 - Classifies raw HTML as `SSR_FULL` / `SSR_THIN` / `CSR_SHELL` — visible words **without** JS execution
 - Parses robots.txt verdicts for every AI bot token — including **token-only agents** like `Google-Extended` and `Applebot-Extended`, which never fetch (Googlebot/Applebot do) and therefore never appear in your logs; most tools get this wrong
-- Checks llms.txt, and deliberately weights it near zero (the measured reality: the overwhelming majority of llms.txt files receive no AI crawler requests)
+- Checks llms.txt, and deliberately weights it near zero because crawler support and impact are not established enough to make it a primary gate
 
 ### Log ground truth (Mode B)
 
@@ -51,9 +51,11 @@ See `references/log-pipeline.md` for drain setup (including a Vercel → PostHog
 
 ## Reading results
 
-- **Score 85–100**: GEO-ready — spend your energy on content and entity work instead
-- **60–84**: fixable gaps, usually TTFB or thin HTML — days of work, not months
-- **< 60**: structurally gated — fix before spending anything on "AI optimization"
+- **Score 85–100**: no major issue detected by this heuristic probe
+- **60–84**: investigate the flagged TTFB, HTML, robots, or response differences
+- **< 60**: major probe findings; confirm simulated-UA results with real crawler logs before acting
+
+If the baseline request is not a normal 200 response, the tool marks the result **inconclusive** and withholds the numeric score.
 
 Full flag-by-flag fix playbook: `references/interpreting.md`.
 
@@ -65,11 +67,11 @@ Probes are sent from *your* machine's IP with simulated bot user-agents. WAFs th
 
 `scripts/bots.json` — curated registry of the crawlers that matter, each classified as:
 
-- **retrieval** (OAI-SearchBot, Claude-SearchBot, PerplexityBot, bingbot…) → drives **live citations now**
+- **retrieval** (OAI-SearchBot, Claude-SearchBot, PerplexityBot…) → vendor-documented search/retrieval crawlers
 - **user_fetch** (ChatGPT-User, Claude-User, Perplexity-User…) → in-conversation page fetches
-- **training** (GPTBot, ClaudeBot, CCBot, meta-externalagent…) → long-term model memory of your brand
+- **training** (GPTBot, ClaudeBot, CCBot, meta-externalagent…) → collection eligibility for training, not guaranteed inclusion or model memory
 
-The distinction matters: blocking a training bot is a strategy choice; blocking a retrieval bot removes you from AI answers this month. Long-tail bot list maintained by the community at [ai-robots-txt](https://github.com/ai-robots-txt/ai.robots.txt) — this project deliberately doesn't duplicate it.
+The distinction matters: blocking a training bot and blocking a search crawler can have different product effects. Follow each vendor's current documentation; an allow rule makes collection possible, not guaranteed. Long-tail bot list maintained by the community at [ai-robots-txt](https://github.com/ai-robots-txt/ai.robots.txt) — this project deliberately doesn't duplicate it.
 
 ## Use as a Claude skill
 
@@ -77,7 +79,7 @@ The distinction matters: blocking a training bot is a strategy choice; blocking 
 
 ## Example
 
-`examples/` contains a real audit run across 18 major sites — news, SaaS, social platforms, and the AI companies themselves.
+`examples/` contains an archived August 2026 audit run across 18 major sites. It is a reproducibility artifact, not a current claim about any named company's crawler access; rerun the probe and confirm with owned logs before drawing conclusions.
 
 ## License
 

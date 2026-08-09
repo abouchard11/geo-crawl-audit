@@ -1,5 +1,7 @@
 # GEO Crawl Audit
 
+> **Archived snapshot:** this is unedited v0.1 probe output from one network location on 2026-08-07. Simulated user-agent results can differ from real verified crawlers, site behavior changes, and several conclusions use wording superseded by the current tool. Treat it as a reproducibility artifact—not a current claim about any named company. Rerun and confirm with owned logs.
+
 **Generated:** 2026-08-07 11:22 UTC  
 **Method:** active multi-UA probe (see caveat at bottom)
 
