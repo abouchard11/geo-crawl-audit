@@ -34,14 +34,12 @@ COMBINED_RE = re.compile(
     r'(?P<status>\d{3}) (?P<size>\S+)(?: "(?P<referer>[^"]*)" "(?P<ua>[^"]*)")?'
 )
 
-VERIFY_SOURCES = {
-    "GPTBot": "https://openai.com/gptbot.json",
-    "OAI-SearchBot": "https://openai.com/searchbot.json",
-    "ChatGPT-User": "https://openai.com/chatgpt-user.json",
-    "PerplexityBot": "https://www.perplexity.ai/perplexitybot.json",
-    "Perplexity-User": "https://www.perplexity.ai/perplexity-user.json",
-    "bingbot": "https://www.bing.com/toolbox/bingbot.json",
-    "Googlebot": "https://developers.google.com/static/search/apis/ipranges/googlebot.json",
+LOG_ONLY_BOTS = {
+    "Googlebot": {
+        "category": "retrieval",
+        "ip_ranges": "https://developers.google.com/static/search/apis/ipranges/googlebot.json",
+    },
+    "Applebot": {"category": "retrieval"},
 }
 
 
@@ -51,10 +49,15 @@ def load_registry(path):
     tokens = {}
     for b in reg["bots"]:
         if not b.get("robots_token_only"):
-            tokens[b["token"].lower()] = {"token": b["token"], "category": b["category"]}
+            tokens[b["token"].lower()] = {
+                "token": b["token"],
+                "category": b["category"],
+                "ip_ranges": b.get("ip_ranges"),
+                "ip_cidrs": b.get("ip_cidrs", []),
+            }
     # Bots worth tracking in logs even though we don't probe them
-    tokens.setdefault("googlebot", {"token": "Googlebot", "category": "retrieval"})
-    tokens.setdefault("applebot", {"token": "Applebot", "category": "retrieval"})
+    for token, meta in LOG_ONLY_BOTS.items():
+        tokens.setdefault(token.lower(), {"token": token, **meta, "ip_cidrs": []})
     return tokens
 
 
@@ -76,8 +79,15 @@ def iter_records(paths, fmt):
                     entries = json.load(fh)
                 except json.JSONDecodeError:
                     continue
-            else:  # NDJSON
-                entries = (json.loads(ln) for ln in fh if ln.strip())
+            else:  # NDJSON — skip malformed lines without losing the file
+                entries = []
+                for line in fh:
+                    if not line.strip():
+                        continue
+                    try:
+                        entries.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
             for e in entries:
                 if not isinstance(e, dict):
                     continue
@@ -96,8 +106,21 @@ def iter_records(paths, fmt):
                 }
 
 
+def networks_from_payload(data):
+    """Parse the common vendor ``prefixes`` JSON shape into networks."""
+    nets = []
+    for prefix in data.get("prefixes", []):
+        cidr = prefix.get("ipv4Prefix") or prefix.get("ipv6Prefix")
+        if cidr:
+            try:
+                nets.append(ipaddress.ip_network(cidr))
+            except ValueError:
+                pass
+    return nets
+
+
 def fetch_ranges(url):
-    """Fetch a published bot IP-range JSON; returns list of ip_network."""
+    """Fetch a published bot IP-range JSON; returns networks or ``None``."""
     try:
         raw = subprocess.run(
             ["curl", "-sS", "-L", "--max-time", "15", url],
@@ -106,14 +129,23 @@ def fetch_ranges(url):
         data = json.loads(raw)
     except Exception:
         return None
+    nets = networks_from_payload(data)
+    return nets or None
+
+
+def verification_networks(meta):
+    """Combine registry-pinned CIDRs with a vendor's live JSON endpoint."""
     nets = []
-    for p in data.get("prefixes", []):
-        cidr = p.get("ipv4Prefix") or p.get("ipv6Prefix")
-        if cidr:
-            try:
-                nets.append(ipaddress.ip_network(cidr))
-            except ValueError:
-                pass
+    for cidr in meta.get("ip_cidrs", []):
+        try:
+            nets.append(ipaddress.ip_network(cidr))
+        except ValueError:
+            pass
+    url = meta.get("ip_ranges")
+    if url:
+        fetched = fetch_ranges(url)
+        if fetched:
+            nets.extend(fetched)
     return nets or None
 
 
@@ -162,11 +194,12 @@ def main():
 
     verified = {}
     if args.verify:
+        by_token = {meta["token"]: meta for meta in tokens.values()}
         for token in stats:
-            src = VERIFY_SOURCES.get(token)
-            if not src:
+            meta = by_token.get(token)
+            if not meta:
                 continue
-            nets = fetch_ranges(src)
+            nets = verification_networks(meta)
             if not nets:
                 continue
             good = bad = 0
@@ -211,10 +244,10 @@ def main():
 
     problems = []
     for token, s in stats.items():
-        errs = sum(v for k, v in s["statuses"].items() if k >= 400)
+        errs = sum(v for k, v in s["statuses"].items() if k >= 400 and k != 499)
         if s["hits"] and errs / s["hits"] > 0.05:
-            problems.append(f"- **{token}**: {errs}/{s['hits']} requests errored "
-                            f"({dict(s['statuses'])}) — every one is a lost citation opportunity")
+            problems.append(f"- **{token}**: {errs}/{s['hits']} requests returned 4xx/5xx "
+                            f"({dict(s['statuses'])}) — review affected paths and intent")
         if s["statuses"].get(499):
             problems.append(f"- **{token}**: {s['statuses'][499]} × 499 — the bot gave up "
                             f"waiting. Fix TTFB on the affected paths.")
