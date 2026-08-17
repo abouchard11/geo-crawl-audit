@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "geo-crawl-audit"
+abstract: >-
+  A zero-dependency audit tool that tests whether AI crawlers (GPTBot, ClaudeBot,
+  PerplexityBot, OAI-SearchBot) can reach, fetch fast enough, and read a website. Audits
+  crawler input rather than answer-engine output: multi-user-agent probing, WAF
+  differential detection, raw-HTML readability classification, and access-log parsing
+  with bot IP verification.
+authors:
+  - family-names: "Bouchard"
+    given-names: "Alex"
+    email: "alex@midnightdev.dev"
+    affiliation: "MidnightDev"
+    website: "https://midnightdev.dev"
+type: software
+repository-code: "https://github.com/abouchard11/geo-crawl-audit"
+url: "https://github.com/abouchard11/geo-crawl-audit"
+license: MIT
+version: 0.1.0
+date-released: 2026-08-07
+keywords:
+  - "geo"
+  - "ai-crawlers"
+  - "gptbot"
+  - "claudebot"
+  - "seo"
+  - "web-audit"
