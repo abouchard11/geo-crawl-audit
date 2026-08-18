@@ -1,5 +1,14 @@
 # geo-crawl-audit
 
+## The ReadableByAI Index
+
+This engine generates [the ReadableByAI Index](https://readablebyai.com/index-report) — a
+recurring public measurement of how company websites read to non-rendering AI crawlers
+(661 companies in Index #1: Y Combinator's Fall 2025 batch and established SaaS).
+Free single-domain scan: [readablebyai.com](https://readablebyai.com). Methodology,
+corrections policy, and free re-verification: [readablebyai.com/corrections](https://readablebyai.com/corrections).
+
+
 **Can AI actually see your website?** A zero-dependency audit tool that answers the question most SEO stacks can't: whether AI crawlers (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot, and friends) can *reach*, *fetch fast enough*, and *read* your site.
 
 Most GEO/AI-visibility tooling monitors the **output** — "did ChatGPT mention my brand?" This tool audits the **input** — "did the bot successfully retrieve my page?" — which is where most failures actually happen, and the first thing to fix.
