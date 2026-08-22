@@ -90,6 +90,6 @@ The distinction matters: blocking a training bot and blocking a search crawler c
 
 `examples/` contains an archived August 2026 audit run across 18 major sites. It is a reproducibility artifact, not a current claim about any named company's crawler access; rerun the probe and confirm with owned logs before drawing conclusions.
 
-## License
+## Rights
 
-MIT
+**Proprietary — all rights reserved. No license is granted.** See [LICENSE](LICENSE).
