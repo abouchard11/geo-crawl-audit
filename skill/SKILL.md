@@ -7,6 +7,8 @@ description: Audit whether AI crawlers (GPTBot, OAI-SearchBot, ClaudeBot, Perple
 
 Diagnose the **input side** of AI search visibility: whether AI crawlers can reach a site, how fast it serves them, and whether they can read it without executing JavaScript. Most GEO tooling monitors the *output* (are we mentioned in AI answers?); this skill audits the *input* (did the bot successfully fetch us?) — which is where most failures actually happen and the first thing to fix.
 
+Citation and passage work after this gate lives in [midnight-seo-skills](https://github.com/abouchard11/midnight-seo-skills) (`/geo-crawl` is the mount, `/geo` and `/aeo` are the output desks). Do not copy this probe into that suite.
+
 ## Why this ordering matters
 
 An AI engine can only cite what it successfully retrieved. The failure chain, in order:
@@ -15,7 +17,7 @@ An AI engine can only cite what it successfully retrieved. The failure chain, in
 3. **Raw-HTML readability** — client-rendered content may be absent from a non-rendering response; vendor rendering behavior is not uniformly documented, so confirm with bot-specific responses and real logs
 4. **Permission** — robots.txt tokens (incl. token-only entries like Google-Extended that never fetch but control training use)
 
-Never recommend content or "AI optimization" work before these gates pass. It's optimizing retrieval for a bot that isn't reaching the page.
+Never recommend content or "AI optimization" work before these gates pass. It's optimizing retrieval for a bot that isn't reaching the page. If this audit is STOP for retrieval or user_fetch bots, midnight-seo-skills `/geo` must not draft a prompt matrix.
 
 ## Mode A — Active probe (no setup, run anytime)
 
@@ -59,6 +61,7 @@ No drain set up yet? Read `references/log-pipeline.md` — includes the Vercel D
 3. For any differential or slow-TTFB flag, run or set up Mode B to confirm what real bots experience.
 4. Translate each confirmed finding into its fix (see `references/interpreting.md`) and state whether it affects retrieval access or training collection eligibility.
 5. Re-run Mode A after fixes ship; compare scores.
+6. Only then hand off to midnight-seo-skills `/geo` (citations) or `/aeo` (passages).
 
 ## Maintenance
 

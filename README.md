@@ -40,7 +40,7 @@ Output: `geo_audit_report.md` (scorecard + flags, worst first) and `geo_audit.js
 ### What the probe does per domain
 
 - Fetches with a **baseline browser UA**, then with ~12 real AI crawler UAs
-- Measures **first and repeat TTFB** separately. The gap is a variability signal, not proof of a cold start or cache miss.
+- Measures **first and repeat TTFB** separately. The gap is a variability signal, not a proof of a cold start or cache miss.
 - Flags **differentials**: any bot treated differently than the browser (status, challenge headers, body size)
 - Classifies raw HTML as `SSR_FULL` / `SSR_THIN` / `CSR_SHELL` — visible words **without** JS execution
 - Parses robots.txt verdicts for every AI bot token — including **token-only agents** like `Google-Extended` and `Applebot-Extended`, which never fetch (Googlebot/Applebot do) and therefore never appear in your logs; most tools get this wrong
@@ -85,6 +85,14 @@ The distinction matters: blocking a training bot and blocking a search crawler c
 ## Use as a Claude skill
 
 `skill/SKILL.md` packages this as an agent skill for Claude (Claude Code / Cowork): say "run a GEO crawl audit on example.com" and the agent runs both modes and interprets results against the playbook.
+
+Portfolio SEO ops that consume this gate live in [midnight-seo-skills](https://github.com/abouchard11/midnight-seo-skills). That suite mounts this repo as `/geo-crawl` and will not write citation copy while the handshake is STOP. Do not copy `geo_probe.py` into that repo.
+
+## Related
+
+- [readablebyai.com](https://readablebyai.com) — public single-domain scan and the ReadableByAI Index
+- [midnight-seo-skills](https://github.com/abouchard11/midnight-seo-skills) — `/geo-crawl` mount + `/geo` / `/aeo` output-side citation and passage work
+- [ai-citation-patterns](https://github.com/abouchard11/ai-citation-patterns) — dated research on how engines select and cite
 
 ## Example
 
