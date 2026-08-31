@@ -58,6 +58,8 @@ Parses Vercel Log Drain exports (NDJSON/JSON) or nginx/apache combined logs. Per
 
 See `references/log-pipeline.md` for drain setup (including a Vercel → PostHog route).
 
+When this engine is mounted by [midnight-seo-skills](https://github.com/abouchard11/midnight-seo-skills) `/geo-crawl`, Mode B input is **owned logs only**. Do not vendor private Index evidence or third-party contributor drains into that public suite.
+
 ## Reading results
 
 - **Score 85–100**: no major issue detected by this heuristic probe
