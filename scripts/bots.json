@@ -3,7 +3,7 @@
   "bots": [
     {
       "token": "GPTBot",
-      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.4; +https://openai.com/gptbot",
       "owner": "OpenAI",
       "category": "training",
       "probe": true,
@@ -13,7 +13,7 @@
     },
     {
       "token": "OAI-SearchBot",
-      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot",
       "owner": "OpenAI",
       "category": "retrieval",
       "probe": true,
@@ -32,6 +32,16 @@
       "why_it_matters": "Fires when a ChatGPT user's prompt triggers a live fetch of your page. Blocking it kills in-conversation citations."
     },
     {
+      "token": "OAI-AdsBot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-AdsBot/1.0; +https://openai.com/searchbot",
+      "owner": "OpenAI",
+      "category": "advertising",
+      "probe": false,
+      "renders_js": false,
+      "ip_ranges": null,
+      "why_it_matters": "Validates the safety of pages submitted as ChatGPT ads. NOT a citation path — blocking it costs no visibility. Never include in the STOP set; relevant only to properties running ChatGPT ads."
+    },
+    {
       "token": "ClaudeBot",
       "ua": "Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)",
       "owner": "Anthropic",
@@ -39,6 +49,7 @@
       "probe": true,
       "renders_js": false,
       "ip_ranges": null,
+      "ip_cidrs": ["160.79.104.0/21"],
       "why_it_matters": "Anthropic training crawler."
     },
     {
@@ -68,7 +79,7 @@
       "category": "retrieval",
       "probe": true,
       "renders_js": false,
-      "ip_ranges": "https://www.perplexity.ai/perplexitybot.json",
+      "ip_ranges": "https://www.perplexity.com/perplexitybot.json",
       "why_it_matters": "Perplexity's index crawler. Perplexity cites aggressively — high citation yield per crawl."
     },
     {
@@ -78,7 +89,7 @@
       "category": "user_fetch",
       "probe": true,
       "renders_js": false,
-      "ip_ranges": "https://www.perplexity.ai/perplexity-user.json",
+      "ip_ranges": "https://www.perplexity.com/perplexity-user.json",
       "why_it_matters": "User-triggered fetches from Perplexity answers."
     },
     {
