@@ -209,6 +209,20 @@ def parse_robots(body):
     return groups, sitemaps
 
 
+def robots_path_matches(pattern, path):
+    """RFC 9309 path matching: '*' matches any run of characters, a trailing '$'
+    anchors the end of the path. Everything else is literal."""
+    if not pattern:
+        return True
+    anchored = pattern.endswith("$")
+    if anchored:
+        pattern = pattern[:-1]
+    regex = "^" + "".join(".*" if ch == "*" else re.escape(ch) for ch in pattern)
+    if anchored:
+        regex += "$"
+    return re.search(regex, path) is not None
+
+
 def robots_verdict(groups, token):
     """Root-path access verdict for a bot token: (allowed, explicit_block)."""
     if groups is None:
@@ -229,6 +243,10 @@ def robots_verdict(groups, token):
             if len(path) > best_len:
                 best_len = len(path)
                 allowed = directive == "allow"
+            elif len(path) == best_len and directive == "allow":
+                # RFC 9309 2.2.2: on an equal-length match the LEAST restrictive
+                # rule wins, so Allow beats Disallow regardless of file order.
+                allowed = True
     return allowed, explicit
 
 
@@ -339,6 +357,21 @@ def audit_domain(domain, registry, sample_pages=0):
 def score_and_flag(out, probe_bots):
     flags, score = out["flags"], 100
 
+    # A score computed on top of a failed baseline is a fabricated number: the
+    # probe never saw a normal response, so every downstream signal is suspect.
+    baseline_status = out.get("baseline", {}).get("status")
+    if baseline_status != 200:
+        flags.append({
+            "severity": "CRITICAL",
+            "code": "BASELINE_ANOMALY",
+            "detail": f"baseline fetch returned {baseline_status} — no score issued; "
+                      f"the probe never saw a normal response for this origin",
+        })
+        out["score"] = None
+        out["conclusive"] = False
+        return
+    out["conclusive"] = True
+
     # Reachability (max -40)
     reach_penalty = 0
     for bot in probe_bots:
@@ -385,8 +418,8 @@ def score_and_flag(out, probe_bots):
     if cls == "CSR_SHELL" or cls == "EMPTY":
         score -= 25
         flags.append({"severity": "CRITICAL", "code": "CSR_SHELL",
-                      "detail": f"only {out['content'].get('visible_words', 0)} visible words in raw HTML — "
-                                f"invisible to non-JS AI crawlers"})
+                      "detail": f"only {out['content'].get('visible_words', 0)} visible words in "
+                                f"baseline raw HTML — a non-JS AI crawler may miss the main content"})
     elif cls == "SSR_THIN":
         score -= 12
         flags.append({"severity": "WARN", "code": "THIN_HTML",

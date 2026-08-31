@@ -76,8 +76,17 @@ def iter_records(paths, fmt):
                     entries = json.load(fh)
                 except json.JSONDecodeError:
                     continue
-            else:  # NDJSON
-                entries = (json.loads(ln) for ln in fh if ln.strip())
+            else:  # NDJSON — one malformed line must not kill the whole export
+                def _ndjson(handle):
+                    for ln in handle:
+                        ln = ln.strip()
+                        if not ln:
+                            continue
+                        try:
+                            yield json.loads(ln)
+                        except json.JSONDecodeError:
+                            continue
+                entries = _ndjson(fh)
             for e in entries:
                 if not isinstance(e, dict):
                     continue
@@ -115,6 +124,26 @@ def fetch_ranges(url):
             except ValueError:
                 pass
     return nets or None
+
+
+def verification_networks(bot):
+    """Networks that authenticate a bot claim.
+
+    Static ip_cidrs win: they need no network round-trip and keep --verify working
+    when a vendor's published JSON is unreachable. Falls back to the range URL.
+    """
+    nets = []
+    for cidr in bot.get("ip_cidrs") or []:
+        try:
+            nets.append(ipaddress.ip_network(cidr))
+        except ValueError:
+            pass
+    if nets:
+        return nets
+    url = bot.get("ip_ranges")
+    if url:
+        return fetch_ranges(url) or []
+    return []
 
 
 def main():
