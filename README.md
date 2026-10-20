@@ -102,4 +102,4 @@ Portfolio SEO ops that consume this gate live in [midnight-seo-skills](https://g
 
 ## Rights
 
-**Proprietary — all rights reserved. No license is granted.** See [LICENSE](LICENSE).
+**Apache License 2.0.** See [LICENSE](LICENSE).
