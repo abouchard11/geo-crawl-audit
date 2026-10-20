@@ -18,7 +18,13 @@ type: software
 repository-code: "https://github.com/abouchard11/geo-crawl-audit"
 url: "https://github.com/abouchard11/geo-crawl-audit"
 license: Apache-2.0
-date-released: 2026-08-09
+version: "1.0.0"
+doi: "10.5281/zenodo.23503114"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23503114"
+    description: "Concept DOI: resolves to the latest archived release on Zenodo"
+date-released: 2026-10-20
 keywords:
   - "geo"
   - "ai-crawlers"
