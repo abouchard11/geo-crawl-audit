@@ -1,5 +1,7 @@
 # geo-crawl-audit
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23503114.svg)](https://doi.org/10.5281/zenodo.23503114)
+
 ## The ReadableByAI Index
 
 This engine generates [the ReadableByAI Index](https://readablebyai.com/index-report) — a
